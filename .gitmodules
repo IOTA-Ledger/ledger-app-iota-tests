@@ -1,0 +1,4 @@
+[submodule "kerl-spec"]
+	path = kerl-spec
+	url = https://github.com/iotaledger/kerl.git
+	branch = master
