@@ -30,7 +30,8 @@ static void test_valid_signatures(const char *seed, int security,
                                   const char *bundle_hash,
                                   const char signature[][SIGNATURE_LENGTH])
 {
-    const int num_fragments = NUM_SIGNATURE_FRAGMENTS(security);
+    const int num_fragments =
+        CEILING(security * NUM_HASH_FRAGMENT_TRYTES, SIGNATURE_FRAGMENT_SIZE);
 
     api_initialize();
     EXPECT_API_SET_BUNDLE_OK(seed, security, tx, last_index, bundle_hash);

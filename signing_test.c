@@ -3,9 +3,10 @@
 #include <string.h>
 #include "test_common.h"
 #include "iota/conversion.h"
-#include "iota/signing.h"
 #include "iota/bundle.c"
 #include "iota/iota_types.h"
+// include the c-file to be able to test static functions
+#include "iota/signing.c"
 
 #define MAX_SECURITY 3
 #define MAX_SIGNATURE_LENGTH ((MAX_SECURITY)*27 * (NUM_HASH_TRYTES))
@@ -123,7 +124,7 @@ static void generate_signature(const unsigned char *seed_bytes,
 
     signing_start(&ctx, 0, seed_bytes, security);
 
-    for (int i = 0; i < NUM_SIGNATURE_FRAGMENTS(security); i++) {
+    for (unsigned int i = 0; i < num_fragments(security); i++) {
 
         const unsigned int fragment_index =
             signing_next_fragment(&ctx, signature_fragment);

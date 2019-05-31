@@ -71,12 +71,11 @@ static void test_normalize_hash_one(void **state)
 {
     UNUSED(state);
 
-    tryte_t hash_trytes[NUM_HASH_TRYTES] = {MAX_TRYTE_VALUE, MAX_TRYTE_VALUE};
+    tryte_t hash_trytes[NUM_HASH_TRYTES] = {TRYTE_MAX, TRYTE_MAX};
     normalize_hash(hash_trytes);
 
     // in the normalized hash the first tryte will be reduced to lowest value
-    static const tryte_t exp_trytes[NUM_HASH_TRYTES] = {MIN_TRYTE_VALUE,
-                                                        MAX_TRYTE_VALUE};
+    static const tryte_t exp_trytes[NUM_HASH_TRYTES] = {TRYTE_MIN, TRYTE_MAX};
     assert_memory_equal(hash_trytes, exp_trytes, NUM_HASH_TRYTES);
 }
 
@@ -84,12 +83,11 @@ static void test_normalize_hash_neg_one(void **state)
 {
     UNUSED(state);
 
-    tryte_t hash_trytes[NUM_HASH_TRYTES] = {MIN_TRYTE_VALUE, MIN_TRYTE_VALUE};
+    tryte_t hash_trytes[NUM_HASH_TRYTES] = {TRYTE_MIN, TRYTE_MIN};
     normalize_hash(hash_trytes);
 
     // in the normalized hash the first tryte will be reduced to highest value
-    static const tryte_t exp_trytes[NUM_HASH_TRYTES] = {MAX_TRYTE_VALUE,
-                                                        MIN_TRYTE_VALUE};
+    static const tryte_t exp_trytes[NUM_HASH_TRYTES] = {TRYTE_MAX, TRYTE_MIN};
     assert_memory_equal(hash_trytes, exp_trytes, NUM_HASH_TRYTES);
 }
 

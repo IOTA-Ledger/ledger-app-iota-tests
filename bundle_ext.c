@@ -27,11 +27,11 @@ static void increment_trit_aera(trit_t *trits, unsigned int start_trit,
     trit_t *trit = trits + start_trit;
 
     for (unsigned int i = 0; i < num_trits; i++, trit++) {
-        if (*trit < MAX_TRIT_VALUE) {
+        if (*trit < TRIT_MAX) {
             *trit += 1;
             break;
         }
-        *trit = MIN_TRIT_VALUE;
+        *trit = TRIT_MIN;
     }
 }
 
