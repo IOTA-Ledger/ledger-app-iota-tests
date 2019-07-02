@@ -1,6 +1,6 @@
 #include <stddef.h>
 #include <string.h>
-#include "api_tests.h"
+#include "api_test_utils.h"
 #include "test_common.h"
 #include "test_vectors.h"
 #include "transaction_file.h"

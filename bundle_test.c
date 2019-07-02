@@ -4,7 +4,7 @@
 #include "iota/conversion.h"
 #include "iota/iota_types.h"
 // include the c-file to be able to test static functions
-#include "bundle_ext.c"
+#include "bundle_test_utils.c"
 
 static void test_increment_tag(void **state)
 {

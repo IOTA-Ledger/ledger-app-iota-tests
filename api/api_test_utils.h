@@ -1,5 +1,5 @@
-#ifndef API_TESTS_H
-#define API_TESTS_H
+#ifndef API_TEST_UTILS_H
+#define API_TEST_UTILS_H
 
 #include <string.h>
 #include "test_common.h"
@@ -115,4 +115,4 @@ static inline void EXPECT_API_SET_BUNDLE_OK(const char *seed, int security,
     }
 }
 
-#endif
+#endif // API_TEST_UTILS_H

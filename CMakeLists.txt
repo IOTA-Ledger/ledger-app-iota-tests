@@ -7,7 +7,7 @@ include(GNUInstallDirs)
 
 find_package(Git REQUIRED)
 
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 
 # ------------------------------------------------------------------------------
@@ -215,7 +215,7 @@ file(GLOB iota_sources "${IOTA_LEDGER_APP_SOURCE_DIR}/iota/*.c")
 add_library(iota-ledger SHARED
     ${iota_sources}
     "${IOTA_LEDGER_APP_SOURCE_DIR}/api.c"
-    "${IOTA_LEDGER_APP_SOURCE_DIR}/misc.c"
+    "${IOTA_LEDGER_APP_SOURCE_DIR}/chars_utils.c"
     "keccak/sha3.c"
     "test_mocks.c"
     "os.c"
@@ -233,6 +233,12 @@ macro(do_test str)
     target_link_libraries(${str}_test iota-ledger test-utils libcmocka)
 endmacro(do_test)
 
+macro(do_api_test str)
+    add_executable(${str}_test api/${str}_test.c)
+    add_test(${str}_test ${str}_test)
+    target_link_libraries(${str}_test iota-ledger test-utils libcmocka)
+endmacro(do_test)
+
 do_test(address)
 do_test(bundle)
 do_test(conversion)
@@ -241,8 +247,8 @@ do_test(seed)
 do_test(signing)
 
 # API end-to-end tests
-do_test(pubkey)
-do_test(tx)
-do_test(sign)
-do_test(get_app_config)
-do_test(reset)
+do_api_test(pubkey)
+do_api_test(tx)
+do_api_test(sign)
+do_api_test(get_app_config)
+do_api_test(reset)

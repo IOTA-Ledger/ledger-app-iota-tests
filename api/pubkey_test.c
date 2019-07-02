@@ -1,13 +1,13 @@
 #include <stddef.h>
 #include <string.h>
-#include "api_tests.h"
+#include "api_test_utils.h"
 #include "test_common.h"
 #include "test_vectors.h"
 #include "api.h"
 #include "iota/conversion.h"
 #include "iota/iota_types.h"
 // include the c-file to be able to test static functions
-#include "test_seed.c"
+#include "seed_test_utils.c"
 
 void seed_derive_from_bip32(const unsigned int *path, unsigned int pathLength,
                             unsigned char *seed_bytes)

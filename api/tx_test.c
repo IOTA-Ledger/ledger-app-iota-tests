@@ -1,18 +1,19 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "api_tests.h"
+#include "api_test_utils.h"
 #include "test_common.h"
 #include "test_vectors.h"
 #include "transaction_file.h"
 #include "os.h"
 #include "api.h"
-#include "misc.h"
+#include "chars_utils.h"
+#include "iota/bundle.h"
 #include "iota/conversion.h"
 #include "iota/iota_types.h"
 // include the c-file to be able to test static functions
-#include "bundle_ext.c"
-#include "test_seed.c"
+#include "bundle_test_utils.c"
+#include "seed_test_utils.c"
 
 void seed_derive_from_bip32(const unsigned int *path, unsigned int pathLength,
                             unsigned char *seed_bytes)
@@ -132,7 +133,7 @@ static void test_refinalize_valid_bundle(void **state)
     UNUSED(state);
     static const int security = 2;
 
-    TX_INPUT txs[8];
+    TX_INPUT txs[MAX_BUNDLE_SIZE];
     // output transaction
     memcpy(&txs[0], &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
     txs[0].tag[0] = '\0';
@@ -154,7 +155,7 @@ static void test_payment_higher_than_balance(void **state)
     UNUSED(state);
     static const int security = 2;
 
-    TX_INPUT txs[8];
+    TX_INPUT txs[MAX_BUNDLE_SIZE];
     // output transaction
     memcpy(&txs[0], &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
     txs[0].value += 1;
@@ -193,7 +194,7 @@ static void test_payment_lower_than_balance(void **state)
     UNUSED(state);
     static const int security = 2;
 
-    TX_INPUT txs[8];
+    TX_INPUT txs[MAX_BUNDLE_SIZE];
     // output transaction
     memcpy(&txs[0], &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
     // input transaction
@@ -232,7 +233,7 @@ static void test_invalid_input_address_index(void **state)
     UNUSED(state);
     static const int security = 2;
 
-    TX_INPUT txs[8];
+    TX_INPUT txs[MAX_BUNDLE_SIZE];
     // output transaction
     memcpy(&txs[0], &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
     // input transaction
@@ -313,7 +314,7 @@ static void test_missing_meta_tx(void **state)
     UNUSED(state);
     static const int security = 2;
 
-    TX_INPUT txs[8];
+    TX_INPUT txs[MAX_BUNDLE_SIZE];
     // output transaction
     memcpy(&txs[0], &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
     // input transaction
@@ -343,7 +344,7 @@ static void test_missing_meta_tx_with_change(void **state)
     UNUSED(state);
     static const int security = 2;
 
-    TX_INPUT txs[8];
+    TX_INPUT txs[MAX_BUNDLE_SIZE];
     // output transaction
     memcpy(&txs[0], &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
     // input transaction
@@ -413,7 +414,7 @@ static void test_invalid_change_index(void **state)
     UNUSED(state);
     static const int security = 2;
 
-    TX_INPUT txs[8];
+    TX_INPUT txs[MAX_BUNDLE_SIZE];
     // output transaction
     memcpy(&txs[0], &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
     txs[0].value -= 1;
@@ -464,7 +465,7 @@ static void test_output_address_reuses_input(void **state)
     UNUSED(state);
     static const int security = 2;
 
-    TX_INPUT txs[8];
+    TX_INPUT txs[MAX_BUNDLE_SIZE];
     // output transaction with input address
     memcpy(&txs[0], &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
     memcpy(txs[0].address, PETER_VECTOR.bundle[1].address, NUM_HASH_TRYTES);
@@ -503,7 +504,7 @@ static void test_change_index_low(void **state)
     UNUSED(state);
     static const int security = 2;
 
-    TX_INPUT txs[8];
+    TX_INPUT txs[MAX_BUNDLE_SIZE];
     // output transaction
     memcpy(&txs[0], &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
     txs[0].value -= 1;
@@ -621,6 +622,138 @@ static void test_bundle_with_second_seed_tx(void **state)
     }
 }
 
+static void test_invalid_output_tag(void **state)
+{
+    UNUSED(state);
+    static const int security = 2;
+
+    api_initialize();
+    { // input transaction as the first transaction
+        SET_SEED_TX_INPUT input;
+        SET_SEED_IN_INPUT(PETER_VECTOR.seed, security, &input);
+        memcpy(&input.tx, &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
+        snprintf(input.tx.tag, NUM_TAG_TRYTES, "1");
+
+        EXPECT_API_EXCEPTION(tx, P1_FIRST, input);
+    }
+}
+
+static void test_invalid_input_tag(void **state)
+{
+    UNUSED(state);
+    static const int security = 2;
+
+    TX_INPUT txs[MAX_BUNDLE_SIZE];
+    // output transaction with input address
+    memcpy(&txs[0], &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
+    // input transaction
+    memcpy(&txs[1], &PETER_VECTOR.bundle[1], sizeof(TX_INPUT));
+    snprintf(txs[1].tag, NUM_TAG_TRYTES, "1");
+
+    api_initialize();
+    { // output transaction
+        SET_SEED_TX_INPUT input;
+        SET_SEED_IN_INPUT(PETER_VECTOR.seed, security, &input);
+        memcpy(&input.tx, &txs[0], sizeof(TX_INPUT));
+
+        TX_OUTPUT output = {};
+        output.finalized = false;
+
+        EXPECT_API_DATA_OK(tx, P1_FIRST, input, output);
+    }
+    { // input transaction
+        EXPECT_API_EXCEPTION(tx, P1_MORE, txs[1]);
+    }
+}
+
+static void test_invalid_output_address_too_short(void **state)
+{
+    UNUSED(state);
+    static const int security = 2;
+
+    api_initialize();
+    { // input transaction as the first transaction
+        SET_SEED_TX_INPUT input;
+        SET_SEED_IN_INPUT(PETER_VECTOR.seed, security, &input);
+        memcpy(&input.tx, &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
+        input.tx.address[NUM_HASH_TRYTES - 1] = '\0';
+
+        EXPECT_API_EXCEPTION(tx, P1_FIRST, input);
+    }
+}
+
+static void test_invalid_output_address_invalid_tryte(void **state)
+{
+    UNUSED(state);
+    static const int security = 2;
+
+    api_initialize();
+    { // input transaction as the first transaction
+        SET_SEED_TX_INPUT input;
+        SET_SEED_IN_INPUT(PETER_VECTOR.seed, security, &input);
+        memcpy(&input.tx, &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
+        input.tx.address[0] = '1';
+
+        EXPECT_API_EXCEPTION(tx, P1_FIRST, input);
+    }
+}
+
+static void test_invalid_input_address_too_short(void **state)
+{
+    UNUSED(state);
+    static const int security = 2;
+
+    TX_INPUT txs[MAX_BUNDLE_SIZE];
+    // output transaction with input address
+    memcpy(&txs[0], &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
+    // input transaction
+    memcpy(&txs[1], &PETER_VECTOR.bundle[1], sizeof(TX_INPUT));
+    txs[1].address[NUM_HASH_TRYTES - 1] = '\0';
+
+    api_initialize();
+    { // output transaction
+        SET_SEED_TX_INPUT input;
+        SET_SEED_IN_INPUT(PETER_VECTOR.seed, security, &input);
+        memcpy(&input.tx, &txs[0], sizeof(TX_INPUT));
+
+        TX_OUTPUT output = {};
+        output.finalized = false;
+
+        EXPECT_API_DATA_OK(tx, P1_FIRST, input, output);
+    }
+    { // input transaction
+        EXPECT_API_EXCEPTION(tx, P1_MORE, txs[1]);
+    }
+}
+
+static void test_invalid_input_address_invalid_tryte(void **state)
+{
+    UNUSED(state);
+    static const int security = 2;
+
+    TX_INPUT txs[MAX_BUNDLE_SIZE];
+    // output transaction with input address
+    memcpy(&txs[0], &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
+    // input transaction
+    memcpy(&txs[1], &PETER_VECTOR.bundle[1], sizeof(TX_INPUT));
+    txs[1].address[0] = '1';
+
+    api_initialize();
+    { // output transaction
+        SET_SEED_TX_INPUT input;
+        SET_SEED_IN_INPUT(PETER_VECTOR.seed, security, &input);
+        memcpy(&input.tx, &txs[0], sizeof(TX_INPUT));
+
+        TX_OUTPUT output = {};
+        output.finalized = false;
+
+        EXPECT_API_DATA_OK(tx, P1_FIRST, input, output);
+    }
+    { // input transaction
+        EXPECT_API_EXCEPTION(tx, P1_MORE, txs[1]);
+    }
+}
+
 static void test_invalid_p1(void **state)
 {
     UNUSED(state);
@@ -661,6 +794,12 @@ int main(void)
         cmocka_unit_test(test_bundle_too_large),
         cmocka_unit_test(test_bundle_without_seed_tx),
         cmocka_unit_test(test_bundle_with_second_seed_tx),
+        cmocka_unit_test(test_invalid_output_tag),
+        cmocka_unit_test(test_invalid_input_tag),
+        cmocka_unit_test(test_invalid_output_address_invalid_tryte),
+        cmocka_unit_test(test_invalid_output_address_too_short),
+        cmocka_unit_test(test_invalid_input_address_invalid_tryte),
+        cmocka_unit_test(test_invalid_input_address_too_short),
         cmocka_unit_test(test_invalid_p1)};
 
     return cmocka_run_group_tests(tests, NULL, NULL);
