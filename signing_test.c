@@ -5,19 +5,15 @@
 #include "iota/conversion.h"
 #include "iota/bundle.c"
 #include "iota/iota_types.h"
+#include "test_vectors.h"
 // include the c-file to be able to test static functions
 #include "iota/signing.c"
 
-#define MAX_SECURITY 3
-#define MAX_SIGNATURE_LENGTH ((MAX_SECURITY)*27 * (NUM_HASH_TRYTES))
+#define MAX_SIGNATURE_LENGTH ((MAX_SECURITY_LEVEL)*27 * (NUM_HASH_TRYTES))
 
-// for purely coincidental reasons this seed was intialy used in the development
-static const char PETER_SEED[] =
-    "PETERPETERPETERPETERPETERPETERPETERPETERPETERPETERPETERPETERPETERPETERPETE"
-    "RPETERR";
 static const uint32_t IDX = 0;
 
-static const tryte_t NORMALIZED_HASH[NUM_HASH_TRYTES] = {0};
+static const tryte_t NORMALIZED_HASH[NUM_HASH_TRYTES] = {};
 
 static const char *FRAGMENTS[] = {
     "GTYOKCTTBPHTOTHZPNCNVFSFXGPSPUYFPUMSJKGJIBLLRBLKBEQEVXQT9QZWIKYDTYHZU9YOGX"
@@ -111,23 +107,23 @@ static const char *FRAGMENTS[] = {
     "CWQDPIVXOXB9WHGEVOTYXANITICWGTFTEWLVXFSIQQUSQEKUJTUOLBIWOIFNQOIHUVTCEAUVMM"
     "YVYTLBFXSBIISGCAWSQJPEUZBMTEBXMUBVNCEFFMB"};
 
-static void generate_signature(const unsigned char *seed_bytes,
+static void generate_signature(SIGNING_CTX *ctx,
+                               const unsigned char *seed_bytes,
                                uint32_t address_idx, uint8_t security,
                                char *signature)
 {
-    SIGNING_CTX ctx;
     unsigned char signature_fragment[SIGNATURE_FRAGMENT_SIZE * NUM_HASH_BYTES];
 
     // initialize a minimal bundle info only with the address index
     const BUNDLE_INFO bundle_info = {.indices = {address_idx}};
-    signing_initialize(&ctx, &bundle_info, NORMALIZED_HASH);
+    signing_initialize(ctx, &bundle_info, NORMALIZED_HASH);
 
-    signing_start(&ctx, 0, seed_bytes, security);
+    signing_start(ctx, 0, seed_bytes, security);
 
     for (unsigned int i = 0; i < num_fragments(security); i++) {
 
         const unsigned int fragment_index =
-            signing_next_fragment(&ctx, signature_fragment);
+            signing_next_fragment(ctx, signature_fragment);
         assert_int_equal(fragment_index, i);
 
         bytes_to_chars(signature_fragment,
@@ -149,17 +145,48 @@ static void assert_signature_equals(uint8_t security, const char *signature)
     }
 }
 
+static void test_signing_start_invalid_index(void **state)
+{
+    UNUSED(state);
+
+    unsigned char seed_bytes[NUM_HASH_BYTES] = {};
+    const uint8_t security = 2;
+
+    SIGNING_CTX ctx;
+    const BUNDLE_INFO bundle_info = {.indices = {IDX}};
+    signing_initialize(&ctx, &bundle_info, NORMALIZED_HASH);
+
+    expect_assert_failure(signing_start(&ctx, 1, seed_bytes, security));
+}
+
+static void test_signing_start_invalid_security(void **state)
+{
+    UNUSED(state);
+
+    unsigned char seed_bytes[NUM_HASH_BYTES] = {};
+
+    SIGNING_CTX ctx;
+    const BUNDLE_INFO bundle_info = {.indices = {IDX}};
+    signing_initialize(&ctx, &bundle_info, NORMALIZED_HASH);
+
+    expect_assert_failure(
+        signing_start(&ctx, 0, seed_bytes, MIN_SECURITY_LEVEL - 1));
+    expect_assert_failure(
+        signing_start(&ctx, 0, seed_bytes, MAX_SECURITY_LEVEL + 1));
+}
+
 static void test_signature_level_one(void **state)
 {
     UNUSED(state);
 
+    SIGNING_CTX ctx;
     const uint8_t security = 1;
+    char signature[MAX_SIGNATURE_LENGTH + 1] = {};
 
     unsigned char seed_bytes[NUM_HASH_BYTES];
-    chars_to_bytes(PETER_SEED, seed_bytes, NUM_HASH_TRYTES);
+    chars_to_bytes(PETER_VECTOR.seed, seed_bytes, NUM_HASH_TRYTES);
 
-    char signature[MAX_SIGNATURE_LENGTH + 1] = {0};
-    generate_signature(seed_bytes, IDX, security, signature);
+    generate_signature(&ctx, seed_bytes, IDX, security, signature);
 
     assert_signature_equals(security, signature);
 }
@@ -168,13 +195,14 @@ static void test_signature_level_two(void **state)
 {
     UNUSED(state);
 
+    SIGNING_CTX ctx;
     const uint8_t security = 2;
+    char signature[MAX_SIGNATURE_LENGTH + 1] = {};
 
     unsigned char seed_bytes[NUM_HASH_BYTES];
-    chars_to_bytes(PETER_SEED, seed_bytes, NUM_HASH_TRYTES);
+    chars_to_bytes(PETER_VECTOR.seed, seed_bytes, NUM_HASH_TRYTES);
 
-    char signature[MAX_SIGNATURE_LENGTH + 1] = {0};
-    generate_signature(seed_bytes, IDX, security, signature);
+    generate_signature(&ctx, seed_bytes, IDX, security, signature);
 
     assert_signature_equals(security, signature);
 }
@@ -183,23 +211,44 @@ static void test_signature_level_three(void **state)
 {
     UNUSED(state);
 
+    SIGNING_CTX ctx;
     const uint8_t security = 3;
+    char signature[MAX_SIGNATURE_LENGTH + 1] = {};
 
     unsigned char seed_bytes[NUM_HASH_BYTES];
-    chars_to_bytes(PETER_SEED, seed_bytes, NUM_HASH_TRYTES);
+    chars_to_bytes(PETER_VECTOR.seed, seed_bytes, NUM_HASH_TRYTES);
 
-    char signature[MAX_SIGNATURE_LENGTH + 1] = {0};
-    generate_signature(seed_bytes, IDX, security, signature);
+    generate_signature(&ctx, seed_bytes, IDX, security, signature);
 
     assert_signature_equals(security, signature);
+}
+
+static void test_signing_too_many_fragments(void **state)
+{
+    UNUSED(state);
+
+    SIGNING_CTX ctx;
+    const uint8_t security = 1;
+    char signature[MAX_SIGNATURE_LENGTH + 1] = {};
+
+    unsigned char seed_bytes[NUM_HASH_BYTES];
+    chars_to_bytes(PETER_VECTOR.seed, seed_bytes, NUM_HASH_TRYTES);
+
+    generate_signature(&ctx, seed_bytes, IDX, security, signature);
+
+    unsigned char signature_fragment[SIGNATURE_FRAGMENT_SIZE * NUM_HASH_BYTES];
+    expect_assert_failure(signing_next_fragment(&ctx, signature_fragment));
 }
 
 int main(void)
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_signing_start_invalid_index),
+        cmocka_unit_test(test_signing_start_invalid_security),
         cmocka_unit_test(test_signature_level_one),
         cmocka_unit_test(test_signature_level_two),
-        cmocka_unit_test(test_signature_level_three)};
+        cmocka_unit_test(test_signature_level_three),
+        cmocka_unit_test(test_signing_too_many_fragments)};
 
     return cmocka_run_group_tests(tests, NULL, NULL);
 }

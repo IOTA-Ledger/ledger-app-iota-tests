@@ -150,6 +150,42 @@ static void test_refinalize_valid_bundle(void **state)
                              PETER_VECTOR.bundle_hash);
 }
 
+static void test_invalid_bundle_hash(void **state)
+{
+    UNUSED(state);
+    static const int security = 2;
+
+    TX_INPUT txs[MAX_BUNDLE_SIZE];
+    // output transaction
+    memcpy(&txs[0], &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
+    txs[0].tag[0] = '\0';
+    // input transaction
+    memcpy(&txs[1], &PETER_VECTOR.bundle[1], sizeof(TX_INPUT));
+    // meta transaction
+    memcpy(&txs[2], &PETER_VECTOR.bundle[2], sizeof(TX_INPUT));
+
+    api_initialize();
+    {
+        SET_SEED_TX_INPUT input;
+        SET_SEED_IN_INPUT(PETER_VECTOR.seed, security, &input);
+        memcpy(&input.tx, &txs[0], sizeof(TX_INPUT));
+
+        TX_OUTPUT output = {};
+        output.finalized = false;
+
+        EXPECT_API_DATA_OK(tx, P1_FIRST, input, output);
+    }
+    {
+        TX_OUTPUT output = {};
+        output.finalized = false;
+
+        EXPECT_API_DATA_OK(tx, P1_MORE, txs[1], output);
+    }
+    {
+        EXPECT_API_EXCEPTION(tx, P1_MORE, txs[2]);
+    }
+}
+
 static void test_payment_higher_than_balance(void **state)
 {
     UNUSED(state);
@@ -268,7 +304,7 @@ static void test_invalid_input_address_index(void **state)
     }
 }
 
-static void test_invalid_tx_order(void **state)
+static void test_no_output_tx(void **state)
 {
     UNUSED(state);
     static const int security = 2;
@@ -281,6 +317,37 @@ static void test_invalid_tx_order(void **state)
         input.tx.current_index = 0;
 
         EXPECT_API_EXCEPTION(tx, P1_FIRST, input);
+    }
+}
+
+static void test_two_output_txs(void **state)
+{
+    UNUSED(state);
+    static const int security = 2;
+
+    api_initialize();
+
+    int tx_index = 0;
+    const int last_index = 2;
+    { // output transaction 1
+        SET_SEED_TX_INPUT input;
+        SET_SEED_IN_INPUT(PETER_VECTOR.seed, security, &input);
+        memcpy(&input.tx, &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
+        input.tx.current_index = tx_index++;
+        input.tx.last_index = last_index;
+
+        TX_OUTPUT output = {};
+        output.finalized = false;
+
+        EXPECT_API_DATA_OK(tx, P1_FIRST, input, output);
+    }
+    { // output transaction 1
+        TX_INPUT input;
+        memcpy(&input, &PETER_VECTOR.bundle[0], sizeof(input));
+        input.current_index = tx_index++;
+        input.last_index = last_index;
+
+        EXPECT_API_EXCEPTION(tx, P1_MORE, input);
     }
 }
 
@@ -400,6 +467,59 @@ static void test_meta_tx_without_reference(void **state)
         EXPECT_API_DATA_OK(tx, P1_FIRST, input, output);
     }
     { // meta transaction
+        TX_INPUT input;
+        memcpy(&input, &PETER_VECTOR.bundle[2], sizeof(input));
+        input.current_index = tx_index++;
+        input.last_index = last_index;
+
+        EXPECT_API_EXCEPTION(tx, P1_MORE, input);
+    }
+}
+
+static void test_too_many_meta_txs(void **state)
+{
+    UNUSED(state);
+    static const int security = 2;
+
+    api_initialize();
+
+    int tx_index = 0;
+    const int last_index = 4;
+    { // output transaction
+        SET_SEED_TX_INPUT input;
+        SET_SEED_IN_INPUT(PETER_VECTOR.seed, security, &input);
+        memcpy(&input.tx, &PETER_VECTOR.bundle[0], sizeof(TX_INPUT));
+        input.tx.current_index = tx_index++;
+        input.tx.last_index = last_index;
+
+        TX_OUTPUT output = {};
+        output.finalized = false;
+
+        EXPECT_API_DATA_OK(tx, P1_FIRST, input, output);
+    }
+    { // input transaction
+        TX_INPUT input;
+        memcpy(&input, &PETER_VECTOR.bundle[1], sizeof(input));
+        input.current_index = tx_index++;
+        input.last_index = last_index;
+
+        TX_OUTPUT output = {};
+        output.finalized = false;
+
+        EXPECT_API_DATA_OK(tx, P1_MORE, input, output);
+    }
+    { // meta transaction 1
+        TX_INPUT input;
+        memcpy(&input, &PETER_VECTOR.bundle[2], sizeof(input));
+        input.current_index = tx_index++;
+        input.last_index = last_index;
+
+        TX_OUTPUT output = {};
+        output.finalized = false;
+
+        EXPECT_API_DATA_OK(tx, P1_MORE, input, output);
+    }
+    { // meta transaction 2
         TX_INPUT input;
         memcpy(&input, &PETER_VECTOR.bundle[2], sizeof(input));
         input.current_index = tx_index++;
@@ -779,14 +899,17 @@ int main(void)
         // tx tests
         cmocka_unit_test(test_bundles_for_seed_from_file),
         cmocka_unit_test(test_refinalize_valid_bundle),
+        cmocka_unit_test(test_invalid_bundle_hash),
         cmocka_unit_test(test_invalid_input_address_index),
-        cmocka_unit_test(test_invalid_tx_order),
+        cmocka_unit_test(test_no_output_tx),
+        cmocka_unit_test(test_two_output_txs),
         cmocka_unit_test(test_tx_index_twice),
         cmocka_unit_test(test_payment_higher_than_balance),
         cmocka_unit_test(test_payment_lower_than_balance),
         cmocka_unit_test(test_missing_meta_tx),
         cmocka_unit_test(test_missing_meta_tx_with_change),
         cmocka_unit_test(test_meta_tx_without_reference),
+        cmocka_unit_test(test_too_many_meta_txs),
         cmocka_unit_test(test_invalid_change_index),
         cmocka_unit_test(test_output_address_reuses_input),
         cmocka_unit_test(test_change_index_low),

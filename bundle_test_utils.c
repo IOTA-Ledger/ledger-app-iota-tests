@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include "test_common.h"
+#include "chars_utils.h"
 #include "os.h"
 #include "iota/iota_types.h"
 // include the c-file to be able to test static functions
