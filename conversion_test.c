@@ -235,6 +235,17 @@ static void test_all_neg_one(void **state)
     test_chars_via_bytes(NEG_ONE_CHARS);
 }
 
+static void test_overflow(void **state)
+{
+    UNUSED(state);
+
+    static const char NEG_ONE_CHARS[NUM_HASH_TRYTES] =
+        "9999999999999999999999999999999999999999999999999999999999999999999999"
+        "999I9LFVPYN";
+
+    test_chars_via_bytes(NEG_ONE_CHARS);
+}
+
 static void test_random_chars_via_bytes(void **state)
 {
     UNUSED(state);
@@ -262,6 +273,7 @@ int main(void)
         cmocka_unit_test(test_all_zero),
         cmocka_unit_test(test_all_one),
         cmocka_unit_test(test_all_neg_one),
+        cmocka_unit_test(test_overflow),
         cmocka_unit_test(test_random_bytes_via_chars),
         cmocka_unit_test(test_random_chars_via_bytes)};
 
