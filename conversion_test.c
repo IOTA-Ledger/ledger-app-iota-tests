@@ -239,9 +239,10 @@ static void test_overflow(void **state)
 {
     UNUSED(state);
 
+    // corresponds to 2^320 leading to additions with carry
     static const char NEG_ONE_CHARS[NUM_HASH_TRYTES] =
-        "9999999999999999999999999999999999999999999999999999999999999999999999"
-        "999I9LFVPYN";
+        "NNNNNNNNNNNNIPWAK9KOEYFFRZLJXRFLFLBRBFQATTA9TLIDNFNIEMCSPPUHKUGISALJSL"
+        "L9PSXBQXEPW";
 
     test_chars_via_bytes(NEG_ONE_CHARS);
 }
