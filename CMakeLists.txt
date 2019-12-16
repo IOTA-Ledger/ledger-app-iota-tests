@@ -237,7 +237,7 @@ macro(do_api_test str)
     add_executable(${str}_test api/${str}_test.c)
     add_test(${str}_test ${str}_test)
     target_link_libraries(${str}_test iota-ledger test-utils libcmocka)
-endmacro(do_test)
+endmacro(do_api_test)
 
 do_test(address)
 do_test(bundle)
