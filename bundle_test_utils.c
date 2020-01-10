@@ -78,7 +78,7 @@ static unsigned int bundle_finalize(BUNDLE_CTX *ctx)
     }
 
     compute_hash(ctx);
-    while (!validate_hash(ctx)) {
+    while (!validate_hash(ctx, 3)) {
         // increment the tag of the first transaction
         bytes_increment_trit_area_81(ctx->bytes + NUM_HASH_BYTES);
         compute_hash(ctx);
