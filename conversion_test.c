@@ -82,6 +82,36 @@ static void test_s64_to_trits_int_min(void **state)
     assert_memory_equal(trits_out, expected_trits, 41);
 }
 
+static void test_s64_to_trits_iota_max(void **state)
+{
+    UNUSED(state);
+
+    static const int64_t input_value = MAX_IOTA_VALUE;
+    trit_t expected_trits[33];
+    memset(expected_trits, 1, 33);
+
+    trit_t trits_out[33];
+    bool result = s64_to_trits(input_value, trits_out, 33);
+
+    assert_false(result);
+    assert_memory_equal(trits_out, expected_trits, 33);
+}
+
+static void test_s64_to_trits_iota_min(void **state)
+{
+    UNUSED(state);
+
+    static const int64_t input_value = -MAX_IOTA_VALUE;
+    trit_t expected_trits[33];
+    memset(expected_trits, -1, 33);
+
+    trit_t trits_out[33];
+    bool result = s64_to_trits(input_value, trits_out, 33);
+
+    assert_false(result);
+    assert_memory_equal(trits_out, expected_trits, 33);
+}
+
 static void test_u32_to_trits_zero(void **state)
 {
     UNUSED(state);
@@ -268,6 +298,8 @@ int main(void)
         cmocka_unit_test(test_s64_to_trits_neg_one),
         cmocka_unit_test(test_s64_to_trits_overflow),
         cmocka_unit_test(test_s64_to_trits_int_min),
+        cmocka_unit_test(test_s64_to_trits_iota_max),
+        cmocka_unit_test(test_s64_to_trits_iota_min),
         cmocka_unit_test(test_u32_to_trits_zero),
         cmocka_unit_test(test_u32_to_trits_one),
         cmocka_unit_test(test_u32_to_trits_overflow),
