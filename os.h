@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "keccak/sha3.h"
 
 /* ----------------------------------------------------------------------- */
 /* -                      DEFINES AND MACROS                             - */
@@ -41,21 +40,6 @@ void os_perso_derive_node_bip32(int curve, const unsigned int *path,
                                 unsigned int pathLength,
                                 unsigned char *privateKey,
                                 unsigned char *chain);
-
-/* ----------------------------------------------------------------------- */
-/* -                          CRYPTO FUNCTIONS                           - */
-/* ----------------------------------------------------------------------- */
-
-#define CX_CURVE_256K1 33
-#define CX_LAST (1 << 0)
-#define CX_SHA384_SIZE 48
-
-typedef SHA3_CTX cx_sha3_t;
-typedef SHA3_CTX cx_hash_t;
-
-void cx_keccak_init(cx_sha3_t *hash, int size);
-void cx_hash(cx_hash_t *hash, int mode, const unsigned char *in,
-             unsigned int len, unsigned char *out, unsigned int out_len);
 
 /* ----------------------------------------------------------------------- */
 /* -                                 IO                                  - */
